@@ -1,0 +1,94 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 210 40% 98%;
+    --foreground: 222 47% 11%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+    --primary: 262 83% 58%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222 47% 11%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%;
+    --accent: 262 83% 58%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 262 83% 58%;
+    --radius: 0.75rem;
+  }
+
+  .dark {
+    --background: 222 47% 6%;
+    --foreground: 210 40% 98%;
+    --card: 222 47% 8%;
+    --card-foreground: 210 40% 98%;
+    --primary: 263 70% 50%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 217 33% 17%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217 33% 17%;
+    --muted-foreground: 215 20% 65%;
+    --accent: 263 70% 50%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 62% 50%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 217 33% 17%;
+    --input: 217 33% 17%;
+    --ring: 263 70% 50%;
+  }
+}
+
+body {
+  @apply bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100;
+  font-feature-settings: "rlig" 1, "calt" 1;
+}
+
+/* Design tokens: spacing and typography for consistency */
+@layer utilities {
+  .page-container {
+    @apply w-full max-w-7xl mx-auto px-6;
+  }
+  .section-spacing {
+    @apply py-24;
+  }
+  /* Vertical rhythm: use for main content below navbar */
+  .page-content {
+    @apply py-12 sm:py-16;
+  }
+  /* Section spacing: between major blocks */
+  .section-gap {
+    @apply space-y-8;
+  }
+  /* Typography hierarchy */
+  .heading-hero {
+    @apply text-5xl md:text-6xl font-bold tracking-tight;
+  }
+  .heading-page {
+    @apply text-3xl font-semibold tracking-tight text-slate-900 dark:text-slate-100;
+  }
+  .heading-section {
+    @apply text-xl font-semibold tracking-tight text-slate-900 dark:text-slate-100;
+  }
+  .heading-card {
+    @apply text-lg font-semibold tracking-tight text-slate-900 dark:text-slate-100;
+  }
+  .body-lg {
+    @apply text-lg leading-relaxed text-slate-600 dark:text-slate-400;
+  }
+  .body {
+    @apply text-base leading-relaxed text-slate-600 dark:text-slate-400;
+  }
+  .body-muted {
+    @apply text-sm text-slate-500 dark:text-slate-400;
+  }
+  .label {
+    @apply text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400;
+  }
+}

@@ -1,0 +1,9 @@
+export { getHealth } from "./healthController";
+export * from "./authController";
+export * from "./subjectController";
+export * from "./paymentController";
+export * from "./enrollmentController";
+export * from "./userController";
+export * from "./videoController";
+export * from "./progressController";
+export * from "./aiController";
