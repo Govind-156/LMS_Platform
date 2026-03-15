@@ -7,6 +7,8 @@ import enrollmentRoutes from "./enrollmentRoutes";
 import userRoutes from "./userRoutes";
 import videoRoutes from "./videoRoutes";
 import progressRoutes from "./progressRoutes";
+import certificateRoutes from "./certificateRoutes";
+import notesRoutes from "./notesRoutes";
 import aiRoutes from "./aiRoutes";
 
 const router = Router();
@@ -19,6 +21,8 @@ router.use("/enrollments", enrollmentRoutes);
 router.use("/users", userRoutes);
 router.use("/videos", videoRoutes);
 router.use("/progress", progressRoutes);
+router.use("/certificates", certificateRoutes);
+router.use("/notes", notesRoutes);
 router.use("/ai", aiRoutes);
 
 export default router;

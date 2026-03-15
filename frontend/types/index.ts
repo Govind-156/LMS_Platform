@@ -39,3 +39,13 @@ export interface SubjectTree {
   subject_id: number;
   sections: SubjectTreeSection[];
 }
+
+export interface Certificate {
+  id: number;
+  user_id: number;
+  course_id: number;
+  issued_at: string;
+  certificate_url: string | null;
+  user_name: string;
+  course_title: string;
+}

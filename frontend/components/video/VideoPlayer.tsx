@@ -1,8 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useImperativeHandle, useRef, useState, forwardRef } from "react";
 import { api } from "@/lib/api";
 import { extractYouTubeVideoId } from "@/lib/youtube";
+
+export interface VideoPlayerHandle {
+  getCurrentTime: () => number | null;
+}
 
 declare global {
   interface Window {
@@ -55,15 +59,18 @@ interface VideoPlayerProps {
   className?: string;
 }
 
-export function VideoPlayer({
-  videoId,
-  youtubeUrl,
-  initialPositionSeconds = 0,
-  nextVideoId,
-  onPlayNext,
-  onCompleted,
-  className = "",
-}: VideoPlayerProps) {
+export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(function VideoPlayer(
+  {
+    videoId,
+    youtubeUrl,
+    initialPositionSeconds = 0,
+    nextVideoId,
+    onPlayNext,
+    onCompleted,
+    className = "",
+  },
+  ref
+) {
   const containerRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<YTPlayer | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -86,6 +93,28 @@ export function VideoPlayer({
     [videoId]
   );
   saveProgressRef.current = saveProgress;
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      getCurrentTime: () => {
+        const p = playerRef.current;
+        if (!p) return null;
+        try {
+          const t = p.getCurrentTime();
+          if (!Number.isFinite(t) || t < 0) return null;
+          // YouTube API returns seconds; ensure integer for consistent mm:ss display
+          let seconds = Math.floor(t);
+          // If value is unreasonably large (> 24h), might be in milliseconds
+          if (seconds > 86400) seconds = Math.floor(seconds / 1000);
+          return seconds;
+        } catch {
+          return null;
+        }
+      },
+    }),
+    []
+  );
 
   useEffect(() => {
     const ytVideoId = extractYouTubeVideoId(youtubeUrl);
@@ -227,4 +256,4 @@ export function VideoPlayer({
       <div id={"yt-player-" + videoId} ref={containerRef} className="aspect-video bg-black rounded-lg" />
     </div>
   );
-}
+});

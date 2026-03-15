@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
@@ -8,13 +8,17 @@ import { Navbar } from "@/components/layout/Navbar";
 import { VideoPlayer } from "@/components/video/VideoPlayer";
 import { CourseSidebar } from "@/components/courses/CourseSidebar";
 import { AIChatPanel } from "@/components/ai/AIChatPanel";
+import { LessonNotesPanel } from "@/components/notes/LessonNotesPanel";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import type { VideoPlayerHandle } from "@/components/video/VideoPlayer";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { ErrorMessage } from "@/components/ui/ErrorMessage";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Menu, ChevronRight } from "lucide-react";
+import { Menu, ChevronRight, Award, Download } from "lucide-react";
 import type { SubjectTree } from "@/types";
+import type { Certificate } from "@/types";
 
 interface VideoDetail {
   id: number;
@@ -44,9 +48,12 @@ export function VideoPageContent({ courseId, videoId, basePath = "video" }: Vide
   const [tree, setTree] = useState<SubjectTree | null>(null);
   const [progress, setProgress] = useState<{ last_position_seconds: number; is_completed: boolean } | null>(null);
   const [courseProgress, setCourseProgress] = useState<{ completed: number; total: number } | null>(null);
+  const [certificate, setCertificate] = useState<Certificate | null>(null);
   const [loading, setLoading] = useState(true);
   const [accessError, setAccessError] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [downloadingCert, setDownloadingCert] = useState(false);
+  const playerRef = useRef<VideoPlayerHandle>(null);
 
   useEffect(() => {
     const id = videoId;
@@ -114,9 +121,52 @@ export function VideoPageContent({ courseId, videoId, basePath = "video" }: Vide
     if (!video?.subject_id) return;
     api
       .get<{ completed: number; total: number }>(`/progress/subjects/${video.subject_id}`)
-      .then((res) => setCourseProgress(res.data))
+      .then((res) => {
+        setCourseProgress(res.data);
+        const data = res.data;
+        if (data && data.total > 0 && data.completed === data.total) {
+          api
+            .get<Certificate>(`/certificates/course/${video.subject_id}`)
+            .then((certRes) => setCertificate(certRes.data))
+            .catch(() => setCertificate(null));
+        } else {
+          setCertificate(null);
+        }
+      })
       .catch(() => {});
   }, [video?.subject_id]);
+
+  const isCourseComplete =
+    courseProgress != null && courseProgress.total > 0 && courseProgress.completed === courseProgress.total;
+
+  useEffect(() => {
+    if (isCourseComplete && video?.subject_id && !certificate) {
+      api
+        .get<Certificate>(`/certificates/course/${video.subject_id}`)
+        .then((res) => setCertificate(res.data))
+        .catch(() => {});
+    }
+  }, [isCourseComplete, video?.subject_id, certificate]);
+
+  const handleDownloadCertificate = useCallback(async () => {
+    if (!certificate) return;
+    setDownloadingCert(true);
+    try {
+      const { data } = await api.get<Blob>(`/certificates/${certificate.id}/download`, {
+        responseType: "blob",
+      });
+      const url = URL.createObjectURL(data);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `certificate-${certificate.course_title.replace(/[^a-z0-9]/gi, "-").toLowerCase()}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } finally {
+      setDownloadingCert(false);
+    }
+  }, [certificate]);
 
   if (loading) {
     return (
@@ -231,6 +281,7 @@ export function VideoPageContent({ courseId, videoId, basePath = "video" }: Vide
             <div className="flex-1 min-w-0 flex flex-col gap-5 p-4 sm:p-6 overflow-auto">
               <Card className="overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800 shadow-lg">
                 <VideoPlayer
+                  ref={playerRef}
                   videoId={video.id}
                   youtubeUrl={video.youtube_url}
                   initialPositionSeconds={initialPosition}
@@ -283,15 +334,58 @@ export function VideoPageContent({ courseId, videoId, basePath = "video" }: Vide
                     </Button>
                   )}
                 </div>
+
+                {isCourseComplete && (
+                  <Card className="mt-6 p-6 rounded-xl border-2 border-primary/30 bg-primary/5 dark:bg-primary/10">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                      <div className="flex items-start gap-3">
+                        <div className="rounded-full bg-primary/20 p-2 shrink-0">
+                          <Award className="h-6 w-6 text-primary" />
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-slate-900 dark:text-slate-100">
+                            Congratulations! You completed this course.
+                          </h3>
+                          <p className="text-sm text-slate-600 dark:text-slate-400 mt-0.5">
+                            You&apos;ve finished all lessons. Download your certificate below.
+                          </p>
+                        </div>
+                      </div>
+                      <Button
+                        onClick={handleDownloadCertificate}
+                        disabled={!certificate || downloadingCert}
+                        className="shrink-0 inline-flex items-center gap-2"
+                      >
+                        <Download className="h-4 w-4" />
+                        {downloadingCert ? "Preparing…" : "Download Certificate"}
+                      </Button>
+                    </div>
+                  </Card>
+                )}
               </div>
             </div>
-            {/* Right: AI tutor chat */}
+            {/* Right: AI Tutor + Notes tabs */}
             <div className="w-full lg:w-[380px] lg:min-w-0 border-t lg:border-t-0 lg:border-l border-slate-200 dark:border-slate-800 p-4 sm:p-5 flex flex-col min-h-[340px] lg:min-h-0 bg-white dark:bg-slate-900/50">
-              <AIChatPanel
-                videoId={video.id}
-                videoTitle={video.title}
-                className="flex-1 min-h-[300px] lg:min-h-0"
-              />
+              <Tabs defaultValue="ai" className="flex flex-col h-full min-h-0">
+                <TabsList className="grid w-full grid-cols-2 shrink-0 mb-3">
+                  <TabsTrigger value="ai">AI Tutor</TabsTrigger>
+                  <TabsTrigger value="notes">Notes</TabsTrigger>
+                </TabsList>
+                <TabsContent value="ai" className="flex-1 min-h-0 mt-0 data-[state=inactive]:hidden">
+                  <AIChatPanel
+                    videoId={video.id}
+                    videoTitle={video.title}
+                    className="flex-1 min-h-[300px] lg:min-h-0"
+                  />
+                </TabsContent>
+                <TabsContent value="notes" className="flex-1 min-h-0 mt-0 data-[state=inactive]:hidden">
+                  <LessonNotesPanel
+                    videoId={video.id}
+                    getCurrentTime={() => playerRef.current?.getCurrentTime() ?? null}
+                    className="flex-1 min-h-[300px] lg:min-h-0"
+                  />
+                </TabsContent>
+              </Tabs>
             </div>
           </div>
         </div>

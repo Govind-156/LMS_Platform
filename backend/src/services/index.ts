@@ -4,4 +4,6 @@ export * from "./paymentService";
 export * from "./enrollmentService";
 export * from "./videoService";
 export * from "./progressService";
+export * from "./certificateService";
+export * from "./notesService";
 export * from "./aiService";

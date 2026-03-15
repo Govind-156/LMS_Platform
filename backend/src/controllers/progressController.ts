@@ -1,6 +1,7 @@
 import { Response } from "express";
 import type { AuthRequest } from "../middleware/authMiddleware";
 import * as progressService from "../services/progressService";
+import * as certificateService from "../services/certificateService";
 
 export async function getSubjectProgress(req: AuthRequest, res: Response): Promise<void> {
   try {
@@ -66,6 +67,21 @@ export async function upsertProgress(req: AuthRequest, res: Response): Promise<v
       last_position_seconds: position,
       is_completed: completed,
     });
+
+    // If this lesson was marked complete, check if the whole course is complete and issue certificate
+    if (completed) {
+      const subjectId = await certificateService.getSubjectIdByVideoId(videoId);
+      if (subjectId) {
+        const { completed: completedCount, total } = await progressService.getSubjectProgress(
+          userId,
+          subjectId
+        );
+        if (total > 0 && completedCount === total) {
+          await certificateService.ensureCertificate(userId, subjectId);
+        }
+      }
+    }
+
     res.status(200).json({ last_position_seconds: position, is_completed: completed });
   } catch {
     res.status(500).json({ error: "Failed to save progress" });

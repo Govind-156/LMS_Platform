@@ -6,4 +6,6 @@ export * from "./enrollmentController";
 export * from "./userController";
 export * from "./videoController";
 export * from "./progressController";
+export * from "./certificateController";
+export * from "./notesController";
 export * from "./aiController";
